@@ -1,41 +1,30 @@
-import React, { PureComponent } from 'react'
-import { withContext } from './ScreenshotsContext'
+import React, {
+  useRef,
+  useEffect,
+  useContext,
+  useState,
+  useCallback
+} from 'react'
+import ScreenshotContext from './ScreenshotsContext'
+import useWindowMouseMove from '../hooks/useWindowMouseMove'
+import useWindowMouseUp from '../hooks/useWindowMouseUp'
 
-@withContext
-export default class ScreenshotsCanvas extends PureComponent {
-  // 画布对象上下文
-  ctx = null
+export default function ScreenshotsCanvas ({ onChange }) {
+  const canvasRef = useRef(null)
+  const [point, setPoint] = useState(null)
 
-  is = false
+  const { width, height, image, viewer, setContext } = useContext(
+    ScreenshotContext
+  )
 
-  point = null
-
-  constructor (props) {
-    super(props)
-    this.canvasRef = React.createRef()
-  }
-
-  componentDidMount () {
-    this.ctx = this.canvasRef.current.getContext('2d')
-    this.draw()
-    window.addEventListener('mousemove', this.onMousemove)
-    window.addEventListener('mouseup', this.onMouseup)
-  }
-
-  componentDidUpdate () {
-    this.draw()
-  }
-
-  componentWillUnmount () {
-    window.removeEventListener('mousemove', this.onMousemove)
-    window.removeEventListener('mouseup', this.onMouseup)
-  }
-
-  draw = () => {
-    const { image, width, height } = this.props
-    if (!image) return
-    this.ctx.clearRect(0, 0, width, height)
-    this.ctx.drawImage(
+  // 绘制图图片背景
+  useEffect(() => {
+    if (!image || !canvasRef.current) return
+    const ctx = canvasRef.current.getContext('2d')
+    ctx.width = width
+    ctx.height = height
+    ctx.clearRect(0, 0, width, height)
+    ctx.drawImage(
       image.el,
       0,
       0,
@@ -46,52 +35,52 @@ export default class ScreenshotsCanvas extends PureComponent {
       width,
       height
     )
-  }
+  }, [width, height, image])
 
-  onMousedown = e => {
-    const { viewer } = this.props
+  // 鼠标事件
+  const mouseDown = e => {
     if (viewer || e.button !== 0) return
-    this.props.setContext({
+    setContext({
       viewer: null,
       action: null,
       stack: [],
       state: {},
       cursor: null
     })
-    this.is = true
-    this.point = { x: e.clientX, y: e.clientY }
-    this.update(e)
+    setPoint({ x: e.clientX, y: e.clientY })
   }
 
-  onMousemove = e => {
-    if (!this.is) return
-    this.update(e)
-  }
-
-  onMouseup = e => {
-    if (this.is) {
-      this.update(e)
-      this.is = false
-    }
-  }
-
-  update = e => {
-    const { x, y } = this.point
-    this.props.onChange({
-      x1: x,
-      y1: y,
-      x2: e.clientX,
-      y2: e.clientY
-    })
-  }
-
-  render () {
-    const { width, height } = this.props
-    return (
-      <div className="screenshots-canvas" onMouseDown={this.onMousedown}>
-        <canvas ref={this.canvasRef} width={width} height={height} />
-        <div className="screenshots-canvas-mask" />
-      </div>
+  // 鼠标移动事件
+  useWindowMouseMove(
+    useCallback(
+      e => {
+        if (!point) return
+        onChange({
+          x1: point.x,
+          y1: point.y,
+          x2: e.clientX,
+          y2: e.clientY
+        })
+      },
+      [onChange, point]
     )
-  }
+  )
+
+  // 鼠标抬起事件
+  useWindowMouseUp(
+    useCallback(
+      e => {
+        if (!point) return
+        setPoint(null)
+      },
+      [point]
+    )
+  )
+
+  return (
+    <div className="screenshots-canvas" onMouseDown={mouseDown}>
+      <canvas ref={canvasRef} width={width} height={height} />
+      <div className="screenshots-canvas-mask" />
+    </div>
+  )
 }

@@ -118,6 +118,7 @@ export default class Screenshots extends PureComponent {
       $image.src = image
       $image.addEventListener('load', () => {
         resolve({
+          src: image,
           el: $image,
           width: $image.width,
           height: $image.height
@@ -125,6 +126,7 @@ export default class Screenshots extends PureComponent {
       })
       $image.addEventListener('error', () => {
         resolve({
+          src: image,
           el: null,
           width: 0,
           height: 0

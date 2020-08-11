@@ -3,6 +3,7 @@
   "version": "0.0.10",
   "private": true,
   "scripts": {
+    "postinstall": "lerna bootstrap --no-ci && lerna run build",
     "install": "npm run bootstrap",
     "bootstrap": "lerna bootstrap",
     "build": "lerna run build",
